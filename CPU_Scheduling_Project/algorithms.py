@@ -1,3 +1,7 @@
+# ==============================
+# ADITYA'S FILE: algorithms.py
+# ==============================
+
 def fcfs(processes):
     processes = sorted(processes, key=lambda x: x['arrival'])
 
@@ -16,6 +20,7 @@ def fcfs(processes):
 
     return execution_order, completion_time
 
+
 def sjf(processes):
     processes = sorted(processes, key=lambda x: (x['arrival'], x['burst']))
 
@@ -25,7 +30,10 @@ def sjf(processes):
     completed = []
 
     while len(completed) < len(processes):
-        available = [p for p in processes if p['arrival'] <= current_time and p['id'] not in completed]
+        available = [
+            p for p in processes
+            if p['arrival'] <= current_time and p['id'] not in completed
+        ]
 
         if not available:
             current_time += 1
@@ -39,6 +47,7 @@ def sjf(processes):
         completed.append(shortest['id'])
 
     return execution_order, completion_time
+
 
 def round_robin(processes, tq):
     queue = []
@@ -60,7 +69,6 @@ def round_robin(processes, tq):
             continue
 
         process = queue.pop(0)
-
         execution_order.append(process['id'])
 
         run_time = min(tq, remaining[process['id']])
@@ -79,6 +87,8 @@ def round_robin(processes, tq):
 
     return execution_order, completion_time
 
+
+
 if __name__ == "__main__":
     processes = [
         {'id': 'P1', 'arrival': 0, 'burst': 5},
@@ -86,6 +96,6 @@ if __name__ == "__main__":
         {'id': 'P3', 'arrival': 2, 'burst': 8}
     ]
 
-order, ct = round_robin(processes, 2)
-print(order)
-print(ct)
+    order, ct = round_robin(processes, 2)
+    print(order)
+    print(ct)
