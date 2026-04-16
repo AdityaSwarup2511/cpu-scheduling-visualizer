@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CPU Scheduling Visualizer</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #eef2f7;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        input, select {
+            padding: 8px 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 18px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+
+        .form-row label {
+            width: 40px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .gantt {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            align-items: stretch;
+        }
+
+        .gantt-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 2px;
+            margin-bottom: 4px;
+        }
+
+        .block {
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            padding: 10px 6px;
+            min-width: 55px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .gantt-time {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f5f8ff;
+        }
+
+        .best {
+            text-align: center;
+            color: green;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .avg-row {
+            margin-top: 12px;
+            font-size: 15px;
+        }
+
+        .tq-row {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .section-title {
+            background: #f0f4ff;
+            padding: 8px 15px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>⚙️ CPU Scheduling Visualizer</h1>
+
+    <form method="POST">
+
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <input type="number" id="n" name="n" placeholder="No. of Processes" min="1" required style="width:160px;">
+            <button type="button" onclick="generateInputs()">Generate Inputs</button>
+        </div>
+
+        <div id="inputs"></div>
+
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:15px;">
+            <select name="algorithm" id="algo" onchange="onAlgoChange()">
+                <option value="FCFS">FCFS – First Come First Served</option>
+                <option value="SJF">SJF – Shortest Job First</option>
+                <option value="RR">Round Robin</option>
+                <option value="PRIORITY">Priority (Non-Preemptive)</option>
+                <option value="COMPARE">Compare All</option>
+            </select>
+
+            <div class="tq-row" id="tq-row">
+                <input type="number" name="tq" id="tq" placeholder="Time Quantum" min="1" style="width:130px;">
+            </div>
+        </div>
+
+        <br>
+        <button type="submit">▶ Run Simulation</button>
+    </form>
+
+    <!-- ─── GANTT CHART ─────────────────────────────── -->
+    {% if result and result.timeline %}
+    <div class="section-title">📊 Gantt Chart</div>
+    <div class="gantt">
+        {% set colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#f39c12','#1abc9c','#e67e22','#e91e63'] %}
+        {% for b in result.timeline %}
+        <div class="gantt-slot">
+            <div class="block"
+                 style="background: {{ colors[loop.index0 % colors|length] }}; width: {{ [b.duration * 40, 55] | max }}px;">
+                {{ b.pid }}<br>
+                <small>{{ b.duration }}u</small>
+            </div>
+            <div class="gantt-time">{{ b.start }}→{{ b.end }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ─── PROCESS TABLE ───────────────────────────── -->
+    {% if result and result.results %}
+    <div class="section-title">📋 Process Details</div>
+    <table>
+        <tr>
+            <th>PID</th><th>Arrival Time</th><th>Burst Time</th>
+            <th>Completion Time</th><th>Waiting Time</th><th>Turnaround Time</th>
+        </tr>
+        {% for r in result.results %}
+        <tr>
+            <td><b>{{ r.id }}</b></td>
+            <td>{{ r.arrival }}</td>
+            <td>{{ r.burst }}</td>
+            <td>{{ r.completion }}</td>
+            <td>{{ r.wt }}</td>
+            <td>{{ r.tat }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p class="avg-row">
+        📌 <b>Average Waiting Time:</b> {{ result.avg_wt }} &nbsp;|&nbsp;
+        <b>Average Turnaround Time:</b> {{ result.avg_tat }}
+    </p>
+    {% endif %}
+
+    <!-- ─── COMPARISON TABLE ────────────────────────── -->
+    {% if result and result.comparison %}
+    <div class="section-title">⚖️ Algorithm Comparison</div>
+    <table>
+        <tr>
+            <th>Algorithm</th>
+            <th>Avg Waiting Time</th>
+            <th>Avg Turnaround Time</th>
+        </tr>
+        {% for algo, data in result.comparison.items() %}
+        <tr {% if algo == result.best_algo %}style="background:#d4edda; font-weight:bold;"{% endif %}>
+            <td>{{ algo }}</td>
+            <td>{{ data.wt }}</td>
+            <td>{{ data.tat }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- ✅ FIX: Use result.best_algo passed from Python, not broken Jinja dictsort -->
+    <p class="best">🏆 Best Algorithm (lowest avg wait): {{ result.best_algo }}</p>
+    {% endif %}
+
+</div>
+
+<script>
+function onAlgoChange() {
+    const algo = document.getElementById("algo").value;
+    const tqRow = document.getElementById("tq-row");
+    // Show time quantum for RR and Compare (RR is included in compare)
+    tqRow.style.display = (algo === "RR" || algo === "COMPARE") ? "block" : "none";
+
+    // Re-generate inputs to show/hide priority column
+    const n = document.getElementById("n").value;
+    if (n > 0) generateInputs();
+}
+
+function generateInputs() {
+    const n = parseInt(document.getElementById("n").value);
+    const algo = document.getElementById("algo").value;
+    const showPriority = (algo === "PRIORITY" || algo === "COMPARE");
+    const container = document.getElementById("inputs");
+    container.innerHTML = "";
+
+    if (!n || n <= 0) return;
+
+    // Header row
+    let header = `<div class="form-row">
+        <label></label>
+        <span style="width:130px; text-align:center; font-weight:bold; color:#007bff;">Arrival Time</span>
+        <span style="width:130px; text-align:center; font-weight:bold; color:#007bff;">Burst Time</span>`;
+    if (showPriority) {
+        header += `<span style="width:130px; text-align:center; font-weight:bold; color:#e74c3c;">Priority (↑ = more urgent)</span>`;
+    }
+    header += `</div>`;
+    container.innerHTML += header;
+
+    for (let i = 0; i < n; i++) {
+        let row = `<div class="form-row">
+            <label>P${i+1}</label>
+            <input name="at${i}" type="number" placeholder="Arrival" min="0" required style="width:120px;">
+            <input name="bt${i}" type="number" placeholder="Burst" min="1" required style="width:120px;">`;
+
+        if (showPriority) {
+            row += `<input name="pr${i}" type="number" placeholder="Priority (1=highest)" min="1" required style="width:160px;">`;
+        }
+
+        row += `</div>`;
+        container.innerHTML += row;
+    }
+}
+</script>
+
+</body>
+</html>
